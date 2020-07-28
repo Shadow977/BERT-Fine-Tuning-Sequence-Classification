@@ -35,3 +35,81 @@ the [transformers](https://github.com/huggingface/transformers) is a package fro
 At the moment, the Hugging Face library seems to be the most widely accepted and powerful pytorch interface for working with BERT. In addition to supporting a variety of different pre-trained transformer models, the library also includes pre-built modifications of these models suited to your specific task. For example, in this tutorial we will use `BertForSequenceClassification`.
 
 The library also includes task-specific classes for token classification, question answering, next sentence prediciton, etc. Using these pre-built classes simplifies the process of modifying BERT for your purposes.
+
+## Reformatting Data to feed into tokenizer
+We are required to:
+1. Add special tokens to the start and end of each sentence.
+2. Pad & truncate all sentences to a single constant length.
+3. Explicitly differentiate real tokens from padding tokens with the "attention mask".
+
+### Special Tokens
+
+**`[SEP]`**
+
+At the end of every sentence, we need to append the special `[SEP]` token. 
+
+This token is an artifact of two-sentence tasks, where BERT is given two separate sentences and asked to determine something (e.g., can the answer to the question in sentence A be found in sentence B?). 
+
+I am not certain yet why the token is still required when we have only single-sentence input, but it is!
+
+**`[CLS]`**
+
+For classification tasks, we must prepend the special `[CLS]` token to the beginning of every sentence.
+
+This token has special significance. BERT consists of 12 Transformer layers. Each transformer takes in a list of token embeddings, and produces the same number of embeddings on the output (but with the feature values changed, of course!).
+
+![Illustration of CLS token purpose](http://www.mccormickml.com/assets/BERT/CLS_token_500x606.png)
+
+On the output of the final (12th) transformer, *only the first embedding (corresponding to the [CLS] token) is used by the classifier*.
+
+>  "The first token of every sequence is always a special classification token (`[CLS]`). The final hidden state
+corresponding to this token is used as the aggregate sequence representation for classification
+tasks." (from the [BERT paper](https://arxiv.org/pdf/1810.04805.pdf))
+
+You might think to try some pooling strategy over the final embeddings, but this isn't necessary. Because BERT is trained to only use this [CLS] token for classification, we know that the model has been motivated to encode everything it needs for the classification step into that single 768-value embedding vector. It's already done the pooling for us!
+
+**`Sentence Length & Attention Mask`**
+The sentences in our dataset obviously have varying lengths, so how does BERT handle this?
+
+BERT has two constraints:
+1. All sentences must be padded or truncated to a single, fixed length.
+2. The maximum sentence length is 512 tokens.
+
+Padding is done with a special `[PAD]` token, which is at index 0 in the BERT vocabulary. The below illustration demonstrates padding out to a "MAX_LEN" of 8 tokens.
+
+<img src="http://www.mccormickml.com/assets/BERT/padding_and_mask.png" width="600">
+
+The "Attention Mask" is simply an array of 1s and 0s indicating which tokens are padding and which aren't (seems kind of redundant, doesn't it?!). This mask tells the "Self-Attention" mechanism in BERT not to incorporate these PAD tokens into its interpretation of the sentence.
+
+The maximum length does impact training and evaluation speed, however. 
+For example, with a Tesla K80:
+
+`MAX_LEN = 128  -->  Training epochs take ~5:28 each`
+
+`MAX_LEN = 64   -->  Training epochs take ~2:57 each`
+
+
+## Training Loop
+Below is our training loop. There's a lot going on, but fundamentally for each pass in our loop we have a trianing phase and a validation phase. 
+
+> *Thank you to [Stas Bekman](https://ca.linkedin.com/in/stasbekman) for contributing the insights and code for using validation loss to detect over-fitting!*
+
+**Training:**
+- Unpack our data inputs and labels
+- Load data onto the GPU for acceleration
+- Clear out the gradients calculated in the previous pass. 
+    - In pytorch the gradients accumulate by default (useful for things like RNNs) unless you explicitly clear them out.
+- Forward pass (feed input data through the network)
+- Backward pass (backpropagation)
+- Tell the network to update parameters with optimizer.step()
+- Track variables for monitoring progress
+
+**Evalution:**
+- Unpack our data inputs and labels
+- Load data onto the GPU for acceleration
+- Forward pass (feed input data through the network)
+- Compute loss on our validation data and track variables for monitoring progress
+
+Pytorch hides all of the detailed calculations from us, but we've commented the code to point out which of the above steps are happening on each line. 
+
+> *PyTorch also has some [beginner tutorials](https://pytorch.org/tutorials/beginner/blitz/cifar10_tutorial.html#sphx-glr-beginner-blitz-cifar10-tutorial-py) which you may also find helpful.*
