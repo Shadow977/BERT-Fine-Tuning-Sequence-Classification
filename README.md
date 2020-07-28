@@ -89,10 +89,8 @@ For example, with a Tesla K80:
 `MAX_LEN = 64   -->  Training epochs take ~2:57 each`
 
 
-## Training Loop
-Below is our training loop. There's a lot going on, but fundamentally for each pass in our loop we have a trianing phase and a validation phase. 
+## Training And Evaluation Loop
 
-> *Thank you to [Stas Bekman](https://ca.linkedin.com/in/stasbekman) for contributing the insights and code for using validation loss to detect over-fitting!*
 
 **Training:**
 - Unpack our data inputs and labels
