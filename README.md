@@ -1,16 +1,27 @@
 # BERT Fine Tuning Sequence Classification
  ## Introduction
- The code in this notebook is actually a simplified version of the [run_glue.py](https://github.com/huggingface/transformers/blob/master/examples/text-classification/run_glue.py)   example script from huggingface.
-
-`run_glue.py` is a helpful utility which allows you to pick which GLUE benchmark task you want to run on, and which pre-trained model you want to use (you can see the list of possible models [here](https://github.com/huggingface/transformers/blob/e6cff60b4cbc1158fbd6e4a1c3afda8dc224f566/examples/run_glue.py#L69)). It also supports using either the CPU, a single GPU, or multiple GPUs. It even supports using 16-bit precision if you want further speed up.
-
-Unfortunately, all of this configurability comes at the cost of *readability*. In this Notebook, we've simplified the code greatly and added plenty of comments to make it clear what's going on. 
-
- ## What is BERT?
+ 
+ ### What is BERT?
 
 BERT (Bidirectional Encoder Representations from Transformers), released in late 2018, is the model we will use in this tutorial to provide readers with a better understanding of and practical guidance for using transfer learning models in NLP. BERT is a method of pretraining language representations that was used to create models that NLP practicioners can then download and use for free. You can either use these models to extract high quality language features from your text data, or you can fine-tune these models on a specific task (classification, entity recognition, question answering, etc.) with your own data to produce state of the art predictions.
 
 This post will explain how you can modify and fine-tune BERT to create a powerful NLP model that quickly gives you state of the art results. 
+
+### BERTforSequenceClassification
+For this task, we first want to modify the pre-trained BERT model to give outputs for classification, and then we want to continue training the model on our dataset until that the entire model, end-to-end, is well-suited for our task. 
+
+Thankfully, the huggingface pytorch implementation includes a set of interfaces designed for a variety of NLP tasks. Though these interfaces are all built on top of a trained BERT model, each has different top layers and output types designed to accomodate their specific NLP task.  
+
+Here is the current list of classes provided for fine-tuning:
+* BertModel
+* BertForPreTraining
+* BertForMaskedLM
+* BertForNextSentencePrediction
+* **BertForSequenceClassification** - The one we'll use.
+* BertForTokenClassification
+* BertForQuestionAnswering
+
+The documentation for these can be found under [here](https://huggingface.co/transformers/v2.2.0/model_doc/bert.html).
 
 ## Advantages of Fine_tuning.
 
